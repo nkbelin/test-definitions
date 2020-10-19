@@ -19,7 +19,7 @@ FAILURES_PRINTED="0"
 AP_SSID=""
 # WIFI AP KEY
 AP_KEY=""
-DURATION = "0"
+DURATION="0"
 
 usage() {
     echo "Usage: $0 [-o timeout] [-n serialno] [-c cts_url] [-t test_params] [-p test_path] [-r <aggregated|atomic>] [-f failures_printed] [-a <ap_ssid>] [-k <ap_key>]" 1>&2
