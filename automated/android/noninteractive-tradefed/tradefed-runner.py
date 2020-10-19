@@ -7,6 +7,7 @@ import sys
 import shlex
 import shutil
 import subprocess
+from subprocess import Popen
 import xml.etree.ElementTree as ET
 import argparse
 import logging
