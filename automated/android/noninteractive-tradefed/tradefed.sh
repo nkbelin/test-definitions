@@ -19,13 +19,14 @@ FAILURES_PRINTED="0"
 AP_SSID=""
 # WIFI AP KEY
 AP_KEY=""
+DURATION = "0"
 
 usage() {
     echo "Usage: $0 [-o timeout] [-n serialno] [-c cts_url] [-t test_params] [-p test_path] [-r <aggregated|atomic>] [-f failures_printed] [-a <ap_ssid>] [-k <ap_key>]" 1>&2
     exit 1
 }
 
-while getopts ':o:n:c:t:p:r:f:a:k:' opt; do
+while getopts ':o:n:c:t:p:r:f:a:k:d:' opt; do
     case "${opt}" in
         o) TIMEOUT="${OPTARG}" ;;
         n) export ANDROID_SERIAL="${OPTARG}" ;;
@@ -36,6 +37,7 @@ while getopts ':o:n:c:t:p:r:f:a:k:' opt; do
         f) FAILURES_PRINTED="${OPTARG}" ;;
         a) AP_SSID="${OPTARG}" ;;
         k) AP_KEY="${OPTARG}" ;;
+        d) DURATION="${OPTARG}" ;;
         *) usage ;;
     esac
 done
@@ -85,4 +87,4 @@ adb_join_wifi "${AP_SSID}" "${AP_KEY}"
 
 # Run tradefed test.
 info_msg "About to run tradefed shell on device ${ANDROID_SERIAL}"
-./tradefed-runner.py -t "${TEST_PARAMS}" -p "${TEST_PATH}" -r "${RESULT_FORMAT}" -f "${FAILURES_PRINTED}"
+./tradefed-runner.py -t "${TEST_PARAMS}" -p "${TEST_PATH}" -r "${RESULT_FORMAT}" -f "${FAILURES_PRINTED}" -d "${DURATION}"

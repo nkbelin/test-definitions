@@ -19,10 +19,98 @@ import py_test_lib  # nopep8
 OUTPUT = '%s/output' % os.getcwd()
 RESULT_FILE = '%s/result.txt' % OUTPUT
 TRADEFED_STDOUT = '%s/tradefed-stdout.txt' % OUTPUT
+TRADEFED_STDERR = '%s/tradefed-stderr.txt' % OUTPUT
 TRADEFED_LOGCAT = '%s/tradefed-logcat.txt' % OUTPUT
 TEST_PARAMS = ''
 AGGREGATED = 'aggregated'
 ATOMIC = 'atomic'
+
+
+def monitored_run(cmd, timeout, hard_timeout, logger, stdout, stderr):
+
+    prv_tmp_size = 0
+    hanged = False
+    updated = False
+    start_time = prv_time = time.time()
+
+    # run the command
+    process = Popen(cmd, stdout=stdout, stderr=stderr)
+
+    # loop while the process is running
+    while process.poll() is None:
+        # check if stdio/stderr was updated
+        crr_tmp_size = os.fstat(stdout.fileno()).st_size + os.fstat(tmp_stderr.fileno()).st_size
+        if crr_tmp_size > prv_tmp_size:
+            prv_tmp_size = crr_tmp_size
+            updated = True
+        # if any checked item is updated reset the clocks
+        if updated:
+            crr_time = prv_time = time.time()
+            updated = False
+            time_no_update = 0
+        else:
+            crr_time = time.time()
+            time_no_update = crr_time - prv_time
+
+        # check the overall time
+        overall_time = crr_time - start_time
+
+        # check if a hard timeout occurred
+        if overall_time > hard_timeout:
+            logger.debug("Metric overall_time is greater than hard_timeout: %s > %s " % (overall_time, hard_timeout))
+            hanged = True
+
+        # check if a timeout occurred
+        if time_no_update > timeout:
+            logger.debug("Metric time_no_update is greater than timeout: %s > %s " % (time_no_update, timeout))
+            hanged = True
+
+        # check if there's a hang reason and break the loop
+        if hanged:
+            logger.debug("Hang detected!")
+            break
+
+        time.sleep(0.1)
+
+    # get exit code
+    code = process.poll()
+
+    # no exit code means the process is still active or zombie
+    if code is None:
+        # try the following methods
+        kill_methods = ('terminate', 'kill')
+        # loop through different termination methods
+        for method in kill_methods:
+            # get the method
+            kill_func = getattr(process, method)
+            # run the method
+            logger.debug("Ending running process with method '%s'" % method)
+            try:
+                kill_func()
+            except OSError:
+                pass
+            except Exception as e:
+                logger.debug("Exception while ending process with method '%s': %s" % (method, str(e)))
+
+            # wait a bit
+            time.sleep(2)
+            #uupdate the exit code
+            code = process.poll()
+
+            # if there's an exit status, break
+            if code is not None:
+                logger.debug("Process ended successfully using '%s'" % method)
+                break
+
+        # nothing broke the loop, the process could not be killed
+        else:
+            logger.warning("Process is still alive after trying with '%s' methods :(" % ", ".join(kill_methods))
+
+    # return an error if the cmd hanged
+    if code is None or hanged:
+        return 666
+
+    return code
 
 
 def result_parser(xml_file, result_format):
@@ -159,6 +247,9 @@ parser.add_argument('-f', dest='FAILURES_PRINTED', type=int,
                     help="Speciy the number of failed test cases to be\
                     printed, 0 means not print any failures.")
 
+parser.add_argument('-d', dest='DURATION', required=False, default='0',
+                    help="Speciy the expected duration in seconds")
+
 args = parser.parse_args()
 # TEST_PARAMS = args.TEST_PARAMS
 
@@ -180,6 +271,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 tradefed_stdout = open(TRADEFED_STDOUT, 'w')
+tradefed_stderr = open(TRADEFED_STDERR, 'w')
 tradefed_logcat_out = open(TRADEFED_LOGCAT, 'w')
 tradefed_logcat = subprocess.Popen(['adb', 'logcat'], stdout=tradefed_logcat_out)
 
@@ -198,8 +290,15 @@ if command is None:
     logger.error("Not supported path: %s" % args.TEST_PATH)
     sys.exit(1)
 
-child = subprocess.Popen(shlex.split(command), stderr=subprocess.STDOUT, stdout=tradefed_stdout)
-fail_to_complete = child.wait()
+# expected duration is in ms but we want seconds
+expected_duration = int(args.DURATION)
+if expected_duration == 0:
+    expected_duration = 3600 * 10  # max 10h
+else:
+    expected_duration = int(expected_duration*1.3/1000 + 10*60)
+
+logger.info('expected duration is ' + str(expected_duration))
+fail_to_complete = monitored_run(shlex.split(command), expected_duration, expected_duration*2, logger, tradefed_stdout, tradefed_stderr)
 
 if fail_to_complete:
     py_test_lib.add_result(RESULT_FILE, 'tradefed-test-run fail')
@@ -208,6 +307,7 @@ else:
 
 logger.info('Tradefed test finished')
 tradefed_stdout.close()
+tradefed_stderr.close()
 tradefed_logcat.kill()
 tradefed_logcat_out.close()
 
