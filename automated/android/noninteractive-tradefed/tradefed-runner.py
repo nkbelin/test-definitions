@@ -40,7 +40,7 @@ def monitored_run(cmd, timeout, hard_timeout, logger, stdout, stderr):
     # loop while the process is running
     while process.poll() is None:
         # check if stdio/stderr was updated
-        crr_tmp_size = os.fstat(stdout.fileno()).st_size + os.fstat(tmp_stderr.fileno()).st_size
+        crr_tmp_size = os.fstat(stdout.fileno()).st_size + os.fstat(stderr.fileno()).st_size
         if crr_tmp_size > prv_tmp_size:
             prv_tmp_size = crr_tmp_size
             updated = True
