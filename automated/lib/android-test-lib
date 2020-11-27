@@ -94,6 +94,9 @@ wait_boot_completed() {
         info_msg "[BEGIN LOGCAT]"
         adb logcat -d
         info_msg "[STOP LOGCAT]"
+        info_msg "[BEGIN DRM STATE]"
+        adb shell cat /d/dri/0/state
+        info_msg "[STOP DRM STATE]"
         error_msg "wait_boot_completed timed out after ${timeout} seconds"
     fi
 }
