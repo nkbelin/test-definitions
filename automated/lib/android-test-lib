@@ -2,6 +2,7 @@
 
 install_latest_adb() {
     install_deps "wget zip"
+    pwd
     wget -S --progress=dot:giga https://dl.google.com/android/repository/platform-tools-latest-linux.zip
     unzip -q platform-tools-latest-linux.zip
     export PATH=$PWD/platform-tools:$PATH

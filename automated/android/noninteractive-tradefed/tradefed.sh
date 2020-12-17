@@ -64,6 +64,7 @@ if [ -e "${TEST_PATH}" ]; then
 	echo "Skipping download an extraction"
 else
 	if echo "${TEST_URL}" | grep "^http" ; then
+		pwd
 		wget -S --progress=dot:giga "${TEST_URL}"
 	else
 		cp "${TEST_URL}" ./
