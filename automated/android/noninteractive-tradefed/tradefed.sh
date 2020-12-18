@@ -65,13 +65,14 @@ if [ -e "${TEST_PATH}" ]; then
 else
 	if echo "${TEST_URL}" | grep "^http" ; then
 		pwd
-		wget -S --progress=dot:giga "${TEST_URL}"
+		wget -N -P /download -S --progress=dot:giga "${TEST_URL}"
+		file_name=$(basename "${TEST_URL}")
+		unzip -q "/download/${file_name}"
 	else
 		cp "${TEST_URL}" ./
+		file_name=$(basename "${TEST_URL}")
+		unzip -q "${file_name}"
 	fi
-	file_name=$(basename "${TEST_URL}")
-	unzip -q "${file_name}"
-	rm -f "${file_name}"
 fi
 
 if [ -d "${TEST_PATH}/results" ]; then
