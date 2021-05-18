@@ -2,6 +2,5 @@
 while true;
 do
     date
-    adb devices
-    sleep 30
+    sleep 300
 done
