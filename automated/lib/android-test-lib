@@ -96,6 +96,33 @@ wait_boot_completed() {
     fi
 }
 
+wait_boot_completed_fatal() {
+    [ "$#" -ne 1 ] && error_msg "Usage: wait_for_boot_completed timeout_in_seconds"
+    # shellcheck disable=SC2039
+    local timeout="$1"
+    # shellcheck disable=SC2039
+    local end=$(( $(date +%s) + timeout ))
+
+    # shellcheck disable=SC2039
+    local boot_completed=false
+    while [ "$(date +%s)" -lt "$end" ]; do
+        if adb shell getprop sys.boot_completed | grep "1"; then
+            boot_completed=true
+            break
+        else
+            sleep 3
+        fi
+    done
+
+    if "${boot_completed}"; then
+        lava-test-case "wait_booted" --result "pass"
+        info_msg "Target booted up completely."
+    else
+        lava-test-case "wait_booted" --result "fail"
+        error_fatal "wait_boot_completed timed out after ${timeout} seconds"
+    fi
+}
+
 # Print to stdout either IPv4 address, or nothing in case of failure.
 # Return failure code of `ip` or `adb` in case of failure.
 get_ip_address() {
