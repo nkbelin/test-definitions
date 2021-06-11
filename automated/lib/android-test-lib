@@ -115,11 +115,9 @@ wait_boot_completed_fatal() {
     done
 
     if "${boot_completed}"; then
-        lava-test-case "wait_booted" --result "pass"
-        info_msg "Target booted up completely."
+        exit 0
     else
-        lava-test-case "wait_booted" --result "fail"
-        error_fatal "wait_boot_completed timed out after ${timeout} seconds"
+        exit 1
     fi
 }
 

@@ -47,3 +47,11 @@ if [ -e "/home/testuser" ]; then
 fi
 
 wait_boot_completed_fatal "${TIMEOUT}"
+
+if [ $? -eq 0 ]; then
+    lava-test-case "wait_booted" --result "pass"
+    info_msg "Target booted up completely."
+else
+    lava-test-case "wait_booted" --result "fail"
+    error_fatal "wait_boot_completed timed out."
+fi
